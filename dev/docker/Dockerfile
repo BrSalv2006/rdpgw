@@ -10,7 +10,7 @@ RUN adduser --disabled-password --gecos "" --home /opt/rdpgw --uid 1001 rdpgw
 # build rdpgw and set rights
 WORKDIR /app
 COPY . /app
-RUN go mod download
+RUN go mod tidy -compat=1.22
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw
 RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw-auth' ./cmd/auth
 RUN chmod +x /opt/rdpgw/rdpgw && \
