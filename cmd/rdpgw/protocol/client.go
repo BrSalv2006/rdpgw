@@ -113,7 +113,7 @@ func (c *ClientConfig) handshakeRequest() []byte {
 }
 
 func (c *ClientConfig) handshakeResponse(data []byte) (caps uint16, err error) {
-	var errorCode int32
+	var errorCode uint32
 	var major byte
 	var minor byte
 	var version uint16

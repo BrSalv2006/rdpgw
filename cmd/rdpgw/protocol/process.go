@@ -191,7 +191,7 @@ func (p *Processor) Process(ctx context.Context) error {
 // Creates a packet and is a response to a handshakeRequest request
 // HTTP_EXTENDED_AUTH_SSPI_NTLM is not supported in Linux
 // but could be in Windows. However, the NTLM protocol is insecure
-func (p *Processor) handshakeResponse(major byte, minor byte, caps uint16, errorCode int) []byte {
+func (p *Processor) handshakeResponse(major byte, minor byte, caps uint16, errorCode uint32) []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, uint32(errorCode)) // error_code
 	buf.Write([]byte{major, minor})
@@ -249,7 +249,7 @@ func (p *Processor) tunnelRequest(data []byte) (caps uint32, cookie string) {
 	return
 }
 
-func (p *Processor) tunnelResponse(errorCode int) []byte {
+func (p *Processor) tunnelResponse(errorCode uint32) []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, uint16(0))                                                                    // server version
@@ -277,7 +277,7 @@ func (p *Processor) tunnelAuthRequest(data []byte) string {
 	return clientName
 }
 
-func (p *Processor) tunnelAuthResponse(errorCode int) []byte {
+func (p *Processor) tunnelAuthResponse(errorCode uint32) []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, uint32(errorCode))                                                                                // error code
@@ -317,7 +317,7 @@ func (p *Processor) channelRequest(data []byte) (server string, port uint16) {
 	return
 }
 
-func (p *Processor) channelResponse(errorCode int) []byte {
+func (p *Processor) channelResponse(errorCode uint32) []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, uint32(errorCode))                             // error code
@@ -336,7 +336,7 @@ func (p *Processor) channelResponse(errorCode int) []byte {
 	return createPacket(PKT_TYPE_CHANNEL_RESPONSE, buf.Bytes())
 }
 
-func (p *Processor) channelCloseResponse(errorCode int) []byte {
+func (p *Processor) channelCloseResponse(errorCode uint32) []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, uint32(errorCode))                             // error code
