@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpam0g \
         libpam-modules \
         libpam-modules-bin \
+		libpam-runtime \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
