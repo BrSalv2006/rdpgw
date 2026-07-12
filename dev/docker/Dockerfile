@@ -48,7 +48,8 @@ RUN cat > /start.sh <<'EOF'
 sleep 2
 exec /opt/rdpgw/rdpgw
 EOF
-chmod +x /opt/rdpgw/rdpgw /opt/rdpgw/rdpgw-auth /start.sh
+
+RUN chmod +x /opt/rdpgw/rdpgw /opt/rdpgw/rdpgw-auth /start.sh
 
 EXPOSE 443
 
