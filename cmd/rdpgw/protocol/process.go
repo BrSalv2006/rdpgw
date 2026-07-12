@@ -355,8 +355,8 @@ func (p *Processor) channelCloseResponse(errorCode uint32) []byte {
 	return createPacket(PKT_TYPE_CLOSE_CHANNEL_RESPONSE, buf.Bytes())
 }
 
-func makeRedirectFlags(flags RedirectFlags) int {
-	var redir = 0
+func makeRedirectFlags(flags RedirectFlags) uint32 {
+	var redir uint32
 
 	if flags.DisableAll {
 		return HTTP_TUNNEL_REDIR_DISABLE_ALL
