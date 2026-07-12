@@ -1,35 +1,46 @@
-# builder stage
-FROM golang:1.24-alpine AS builder
+ARG GO_VERSION=1.26
+ARG ALPINE_VERSION=3.21
 
-# Install CA certificates explicitly in builder
-RUN apk --no-cache add git gcc musl-dev linux-pam-dev pkgconf
+# ==========================================
+# Builder Stage
+# ==========================================
+FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
 
-# add user
-RUN adduser --disabled-password --gecos "" --home /opt/rdpgw --uid 1001 rdpgw
+RUN apk add --no-cache gcc musl-dev linux-pam-dev pkgconf
 
-# build rdpgw and set rights
-WORKDIR /app
-COPY . /app
-RUN go mod tidy -compat=1.22
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw
-RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw-auth' ./cmd/auth
-RUN chmod +x /opt/rdpgw/rdpgw && \
-    chmod +x /opt/rdpgw/rdpgw-auth
+WORKDIR /src
 
-FROM alpine:latest
-# Install CA certificates and (for the dev compose) openssl so the
-# entrypoint can mint an ephemeral self-signed cert at startup. No cert
-# is baked into the image, so each container instance gets its own key.
-RUN apk --no-cache add linux-pam musl tzdata ca-certificates openssl && update-ca-certificates
+COPY go.mod go.sum ./
+RUN go mod download
 
-# make tempdir in case filestore is used
-ADD dev/docker/tmp.tar /
-COPY --chown=0 dev/docker/rdpgw-pam /etc/pam.d/rdpgw
+COPY . .
 
-USER 1001
-COPY --chown=1001 dev/docker/run.sh /run.sh
-COPY --chown=1001 --from=builder /opt/rdpgw /opt/rdpgw
-COPY --chown=1001 --from=builder /etc/passwd /etc/passwd
+RUN go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/rdpgw ./cmd/rdpgw && \
+    CGO_ENABLED=1 GOOS=linux go build -trimpath -o /out/rdpgw-auth ./cmd/auth
+
+# ==========================================
+# Runtime Stage
+# ==========================================
+FROM alpine:${ALPINE_VERSION}
+
+RUN apk add --no-cache linux-pam ca-certificates
 
 WORKDIR /opt/rdpgw
-ENTRYPOINT ["/bin/sh", "/run.sh"]
+
+COPY --from=builder /out/rdpgw .
+COPY --from=builder /out/rdpgw-auth .
+COPY dev/docker/rdpgw-pam /etc/pam.d/rdpgw
+
+RUN chmod +x /opt/rdpgw/rdpgw /opt/rdpgw/rdpgw-auth && \
+    cat > /start.sh <<'EOF'
+#!/bin/sh
+/opt/rdpgw/rdpgw-auth &
+sleep 2
+exec /opt/rdpgw/rdpgw
+EOF
+chmod +x /start.sh
+
+EXPOSE 443
+
+ENTRYPOINT ["/start.sh"]

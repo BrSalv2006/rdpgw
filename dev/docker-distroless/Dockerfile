@@ -1,12 +1,22 @@
-FROM golang:1.24
-WORKDIR /src
-ENV CGO_ENABLED 0
-COPY go.mod ./
-RUN go mod tidy -compat=1.22
-COPY . .
-RUN go build github.com/bolkedebruin/rdpgw/cmd/rdpgw
+ARG GO_VERSION=1.26
 
-FROM gcr.io/distroless/static-debian11:nonroot
+FROM golang:${GO_VERSION} AS builder
+
+ENV CGO_ENABLED=0
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go mod tidy && \
+    go build -trimpath -o /out/rdpgw ./cmd/rdpgw
+
+FROM gcr.io/distroless/static:nonroot
+
 WORKDIR /config
-COPY --from=0 /src/rdpgw /rdpgw
+COPY --from=builder /out/rdpgw /rdpgw
+
 CMD ["/rdpgw"]
