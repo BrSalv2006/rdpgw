@@ -1,12 +1,17 @@
 ARG GO_VERSION=1.26
-ARG ALPINE_VERSION=3.21
+ARG DEBIAN_VERSION=trixie
 
 # ==========================================
 # Builder Stage
 # ==========================================
-FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
+FROM golang:${GO_VERSION}-${DEBIAN_VERSION} AS builder
 
-RUN apk add --no-cache gcc musl-dev linux-pam-dev pkgconf
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        libc6-dev \
+        libpam0g-dev \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
 
@@ -22,9 +27,14 @@ RUN go mod tidy && \
 # ==========================================
 # Runtime Stage
 # ==========================================
-FROM alpine:${ALPINE_VERSION}
+FROM debian:${DEBIAN_VERSION}-slim
 
-RUN apk add --no-cache linux-pam ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpam0g \
+        libpam-modules \
+        libpam-modules-bin \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/rdpgw
 
@@ -32,14 +42,13 @@ COPY --from=builder /out/rdpgw .
 COPY --from=builder /out/rdpgw-auth .
 COPY dev/docker/rdpgw-pam /etc/pam.d/rdpgw
 
-RUN chmod +x /opt/rdpgw/rdpgw /opt/rdpgw/rdpgw-auth && \
-    cat > /start.sh <<'EOF'
+RUN cat > /start.sh <<'EOF'
 #!/bin/sh
 /opt/rdpgw/rdpgw-auth &
 sleep 2
 exec /opt/rdpgw/rdpgw
 EOF
-chmod +x /start.sh
+chmod +x /opt/rdpgw/rdpgw /opt/rdpgw/rdpgw-auth /start.sh
 
 EXPOSE 443
 
