@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -36,6 +37,10 @@ var opts struct {
 }
 
 var conf config.Configuration
+
+func listenAddress(bindAddress string, port int) string {
+	return net.JoinHostPort(bindAddress, strconv.Itoa(port))
+}
 
 func initOIDC(callbackUrl *url.URL) *web.OIDC {
 	// set oidc config
@@ -177,7 +182,7 @@ func main() {
 			cfg.GetCertificate = certMgr.GetCertificate
 
 			go func() {
-				http.ListenAndServe(":80", certMgr.HTTPHandler(nil))
+				http.ListenAndServe(listenAddress(conf.Server.BindAddress, 80), certMgr.HTTPHandler(nil))
 			}()
 		}
 	}
@@ -326,7 +331,7 @@ func main() {
 
 	// setup server
 	server := http.Server{
-		Addr:         ":" + strconv.Itoa(conf.Server.Port),
+		Addr:         listenAddress(conf.Server.BindAddress, conf.Server.Port),
 		Handler:      r,
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)), // disable http2
