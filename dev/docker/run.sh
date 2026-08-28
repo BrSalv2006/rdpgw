@@ -17,7 +17,8 @@ if [ ! -f "${CERT}" ] && [ ! -f "${KEY}" ]; then
     -subj "/CN=rdpgw-ephemeral"
 fi
 
-if [ "${RDPGW_SERVER__AUTHENTICATION}" = "local" ]; then
+if [ "${RDPGW_SERVER__AUTHENTICATION}" = "local" ] || \
+   [ -f "/opt/rdpgw/rdpgw.yaml" ] && grep -qi "local" /opt/rdpgw/rdpgw.yaml 2>/dev/null; then
   echo "Starting rdpgw-auth"
   /opt/rdpgw/rdpgw-auth &
 fi
