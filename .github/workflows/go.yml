@@ -1,40 +1,38 @@
 name: Go
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
 
 jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v7
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
+            - name: Set up Go
+              uses: actions/setup-go@v7
+              with:
+                  go-version-file: go.mod
+              id: go
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v7
+            - name: Install pam-devel
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libpam-dev
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v7
-      with:
-        go-version: ^1.22
-      id: go
+            - name: Install golint
+              run: go get -u golang.org/x/lint/golint
 
-    - name: Install pam-devel
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libpam-dev
+            - name: Update go.sum
+              run: make mod
 
-    - name: Install golint
-      run: go get -u golang.org/x/lint/golint
-      
-    - name: Update go.sum
-      run: make mod
+            - name: Build
+              run: make build
 
-    - name: Build
-      run: make build
-
-    - name: Test
-      run: make test
+            - name: Test
+              run: make test
